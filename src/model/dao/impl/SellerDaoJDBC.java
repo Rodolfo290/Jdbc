@@ -5,7 +5,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import db.DB;
 import db.DbException;
@@ -53,14 +56,14 @@ public class SellerDaoJDBC implements SellerDao {
 			if (rs.next()) {
 //				int departmentId = rs.getInt("DepartmentId");
 //				String name = rs.getString("DepName");
-			//	Department dep = new Department(departmentId, name);
+				// Department dep = new Department(departmentId, name);
 
 				Department dep = instantiateDepartment(rs);
-				
+
 //				Department dep = new Department();
 //				dep.setId(rs.getInt("DepartmentId"));
 //				dep.setName(rs.getString("DepName"));
-				
+
 //				
 //				int sellerId = rs.getInt("Id");
 //				String sellerName = rs.getString("Name");
@@ -68,7 +71,7 @@ public class SellerDaoJDBC implements SellerDao {
 //				LocalDate birthDate = rs.getDate("BirthDate").toLocalDate();
 //				double baseSalary = rs.getDouble("BaseSalary");
 //				Seller obj = new Seller(sellerId, sellerName, email, birthDate, baseSalary, dep);
-				
+
 				Seller obj = instantiateSeller(rs, dep);
 
 //				Department dep = new Department();
@@ -82,7 +85,7 @@ public class SellerDaoJDBC implements SellerDao {
 //				obj.setBirthDate(rs.getDate("BirthDate").toLocalDate());
 //				obj.setBaseSalary(rs.getDouble("BaseSalary"));
 //				obj.setDepartment(dep);
-				 return obj;  // ✅ variável usada e retornada
+				return obj; // ✅ variável usada e retornada
 			}
 			return null; // caso não exista nenhum Seller com esse id
 
@@ -115,6 +118,45 @@ public class SellerDaoJDBC implements SellerDao {
 	public List<Seller> findAll() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public List<Seller> findByDepartment(Department department) {
+		PreparedStatement st = null;
+		ResultSet rs = null;
+		try {
+			st = conn.prepareStatement(
+					"SELECT seller.*,department.Name as DepName " + "FROM seller INNER JOIN department "
+							+ "ON seller.DepartmentId = department.Id " + "WHERE DepartmentId = ? " + "ORDER BY Name");
+
+			st.setInt(1, department.getId());
+			rs = st.executeQuery();
+
+			List<Seller> list = new ArrayList<Seller>();
+			Map<Integer, Department> map = new HashMap<>();
+
+			while (rs.next()) {
+
+				Department dep = map.get(rs.getInt("DepartmentId"));
+
+				if (dep == null) {
+					dep = instantiateDepartment(rs);
+					map.put(rs.getInt("DepartmentId"), dep);
+				}
+
+				Seller obj = instantiateSeller(rs, dep);
+
+				list.add(obj);
+			}
+			return list; // caso não exista nenhum Seller com esse id
+
+		} catch (SQLException e) {
+			throw new DbException(e.getMessage());
+		} finally {
+			DB.closeStatement(st);
+			DB.closeResultSet(rs);
+		}
+
 	}
 
 }
