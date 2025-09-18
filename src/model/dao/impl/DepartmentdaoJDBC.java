@@ -5,7 +5,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,7 +12,6 @@ import db.DB;
 import db.DbException;
 import model.dao.DepartmentDao;
 import model.entities.Department;
-import model.entities.Seller;
 
 public class DepartmentdaoJDBC implements DepartmentDao {
 
@@ -79,15 +77,21 @@ public class DepartmentdaoJDBC implements DepartmentDao {
 	@Override
 	public void deleteById(Integer id) {
 		PreparedStatement st = null;
-		ResultSet rs = null;
+
 		try {
 			st = conn.prepareStatement("""
-									SELECT *
-					FROM department
-					WHERE id = ? """);
+					DELETE FROM department
+					WHERE Id = ?  """);
+			st.setInt(1, id);
+			int rowsAffected = st.executeUpdate();
+			if (rowsAffected == 0) {
+				throw new DbException("Nenhum registro encontrado para o id: " + id);
+			}
+		} catch (SQLException e) {
+			throw new DbException(e.getMessage());
+		} finally {
+			DB.closeStatement(st);
 
-		} catch (Exception e) {
-			// TODO: handle exception
 		}
 
 	}
@@ -139,16 +143,13 @@ public class DepartmentdaoJDBC implements DepartmentDao {
 										SELECT *
 					FROM department
 					ORDER BY Name""");
-			
+
 			rs = st.executeQuery();
-			
+
 			List<Department> list = new ArrayList<Department>();
 			while (rs.next()) {
-			    Department dep = new Department(
-			        rs.getInt("Id"),
-			        rs.getString("Name")
-			    );
-			    list.add(dep);
+				Department dep = new Department(rs.getInt("Id"), rs.getString("Name"));
+				list.add(dep);
 			}
 			return list;
 
@@ -158,7 +159,7 @@ public class DepartmentdaoJDBC implements DepartmentDao {
 			DB.closeStatement(st);
 			DB.closeResultSet(rs);
 		}
-		
+
 	}
 
 }
